@@ -6,7 +6,7 @@ export async function analyzeResumeWithAI(
   resumeText: string,
   jobDescription?: string
 ) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
 
   const prompt = `You are an expert ATS (Applicant Tracking System) analyst with 10+ years of experience in HR tech.
 
