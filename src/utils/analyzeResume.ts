@@ -1,16 +1,16 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function analyzeResumeWithAI(
   resumeText: string,
   jobDescription?: string
 ) {
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
   const prompt = `You are an expert ATS (Applicant Tracking System) analyst with 10+ years of experience in HR tech.
 
-Analyze this resume for ATS compatibility and return ONLY a valid JSON object with no extra text.
+Analyze this resume for ATS compatibility and return ONLY a valid JSON object with no extra text, no markdown, no backticks.
 
 RESUME TEXT:
 ${resumeText}
@@ -46,17 +46,9 @@ Return this exact JSON structure:
   "pass_rate": "Low|Medium|High|Very High"
 }`;
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 2000,
-    messages: [{ role: 'user', content: prompt }]
-  });
+  const result = await model.generateContent(prompt);
+  const responseText = result.response.text();
 
-  const responseText = message.content[0].type === 'text' 
-    ? message.content[0].text 
-    : '';
-
-  // Clean and parse JSON
   const cleaned = responseText
     .replace(/```json/g, '')
     .replace(/```/g, '')
