@@ -2,10 +2,15 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
+async function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function analyzeResumeWithAI(
   resumeText: string,
-  jobDescription?: string
-) {
+  jobDescription?: string,
+  retries = 3
+): Promise<any> {
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
   const prompt = `You are a senior ATS (Applicant Tracking System) expert and professional resume consultant with 15+ years of experience at Fortune 500 companies. You have deep knowledge of how ATS systems like Workday, Taleo, Greenhouse, Lever, and iCIMS parse and score resumes.
@@ -15,11 +20,8 @@ Your task is to perform a comprehensive, STRICT and ACCURATE ATS analysis of the
 ${jobDescription ? `
 TARGET JOB DESCRIPTION:
 ${jobDescription}
-
 Analyze the resume specifically for this role. Match skills, experience, keywords, and requirements from the job description.
-` : `
-No job description provided. Perform a general ATS analysis based on industry best practices.
-`}
+` : `No job description provided. Perform a general ATS analysis based on industry best practices.`}
 
 RESUME TEXT TO ANALYZE:
 ---
@@ -27,70 +29,21 @@ ${resumeText}
 ---
 
 SCORING CRITERIA (be strict and accurate):
+1. FORMATTING (0-100): ATS-parseable format, standard headings, consistent dates, no tables/columns/graphics
+2. KEYWORDS (0-100): Industry keywords, job description match, skills completeness
+3. READABILITY (0-100): Action verbs, quantifiable achievements, concise bullets
+4. CONTACT INFO (0-100): Name, email, phone, LinkedIn, location
+5. WORK EXPERIENCE (0-100): Relevant experience, clear titles, achievement-focused
+6. EDUCATION (0-100): Degree, institution, graduation year
+7. SKILLS (0-100): Technical skills, relevant to role, certifications
 
-1. FORMATTING (0-100):
-   - ATS-parseable format (no tables, columns, headers/footers, graphics)
-   - Standard section headings (Experience, Education, Skills, etc.)
-   - Consistent date formats
-   - Appropriate font and spacing
-   - File structure clarity
-   - Penalize: Multiple columns, tables, text boxes, unusual characters
+OVERALL SCORE: Weighted average (Formatting 20%, Keywords 25%, Readability 20%, Contact 10%, Experience 15%, Skills 10%)
+Be strict: most resumes score 55-80. Perfect resumes rarely exceed 90.
 
-2. KEYWORDS (0-100):
-   - Industry-relevant technical keywords present
-   - ${jobDescription ? 'Match with job description keywords' : 'Common industry keywords'}
-   - Keyword density and natural placement
-   - Skills section completeness
-   - Penalize: Keyword stuffing, missing critical skills
-
-3. READABILITY (0-100):
-   - Clear, concise bullet points
-   - Strong action verbs (Led, Developed, Implemented, etc.)
-   - Quantifiable achievements (%, $, numbers)
-   - Appropriate resume length
-   - Penalize: Passive voice, vague descriptions, walls of text
-
-4. CONTACT INFO (0-100):
-   - Name clearly visible
-   - Professional email address
-   - Phone number present
-   - LinkedIn URL (bonus)
-   - Location (city/state minimum)
-   - Penalize: Missing critical contact info
-
-5. WORK EXPERIENCE (0-100):
-   - Relevant experience for the role
-   - Clear job titles and company names
-   - Dates clearly shown
-   - Achievement-focused bullets
-   - Penalize: Job hopping without explanation, gaps, vague descriptions
-
-6. EDUCATION (0-100):
-   - Degree and field of study
-   - Institution name
-   - Graduation year
-   - Relevant coursework (if entry level)
-
-7. SKILLS (0-100):
-   - Technical skills clearly listed
-   - Relevant to target role
-   - Mix of hard and soft skills
-   - Certifications mentioned
-
-OVERALL SCORE calculation:
-- Weight: Formatting 20%, Keywords 25%, Readability 20%, Contact 10%, Experience 15%, Skills 10%
-- Calculate weighted average
-- Be strict: most resumes score 55-80
-
-ISSUE DETECTION RULES:
-- HIGH severity: Issues that will cause ATS rejection or immediate disqualification
-- MEDIUM severity: Issues that significantly reduce match score
-- LOW severity: Minor improvements that could boost score
-
-Return ONLY a valid JSON object with absolutely no markdown, no backticks, no extra text:
+Return ONLY valid JSON, no markdown, no backticks:
 
 {
-  "overall_score": <weighted score 0-100, be strict>,
+  "overall_score": <0-100>,
   "section_scores": {
     "formatting": <0-100>,
     "keywords": <0-100>,
@@ -104,35 +57,38 @@ Return ONLY a valid JSON object with absolutely no markdown, no backticks, no ex
     {
       "severity": "high|medium|low",
       "category": "formatting|keywords|structure|content|contact",
-      "title": "<specific, actionable issue title>",
-      "description": "<detailed explanation of why this is a problem for ATS>",
-      "suggestion": "<specific, actionable fix with example if possible>"
+      "title": "<specific issue title>",
+      "description": "<detailed explanation referencing actual resume content>",
+      "suggestion": "<specific actionable fix>"
     }
   ],
-  "keywords_found": ["<actual keywords found in resume, max 30>"],
-  "keywords_missing": ["<important keywords missing based on role/industry, max 15>"],
-  "strengths": ["<specific strengths found in this resume, not generic>"],
-  "quick_wins": ["<specific quick fixes that will immediately improve ATS score>"],
-  "word_count": <actual word count>,
+  "keywords_found": ["<actual keywords from resume, max 30>"],
+  "keywords_missing": ["<important missing keywords, max 15>"],
+  "strengths": ["<specific strengths from this resume>"],
+  "quick_wins": ["<specific quick fixes>"],
+  "word_count": <actual count>,
   "pass_rate": "Low|Medium|High|Very High",
-  "ats_verdict": "<2-3 sentence honest assessment of this resume's ATS performance>"
-}
+  "ats_verdict": "<2-3 sentence honest assessment of ATS performance>"
+}`;
 
-IMPORTANT RULES:
-- Be SPECIFIC to this resume, not generic
-- Every issue must reference actual content from the resume
-- Keywords found must actually appear in the resume text
-- Missing keywords must be relevant to the role/industry
-- Scores must reflect actual quality, not be inflated
-- Most resumes have 5-15 issues total`;
-
-  const result = await model.generateContent(prompt);
-  const responseText = result.response.text();
-
-  const cleaned = responseText
-    .replace(/```json/g, '')
-    .replace(/```/g, '')
-    .trim();
-
-  return JSON.parse(cleaned);
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const result = await model.generateContent(prompt);
+      const responseText = result.response.text();
+      const cleaned = responseText
+        .replace(/```json/g, '')
+        .replace(/```/g, '')
+        .trim();
+      return JSON.parse(cleaned);
+    } catch (error: any) {
+      const isRateLimit = error.message?.includes('429') || error.message?.includes('quota');
+      if (isRateLimit && attempt < retries) {
+        console.log(`Rate limit hit, waiting 30s before retry ${attempt}/${retries}...`);
+        await sleep(30000);
+        continue;
+      }
+      if (attempt === retries) throw error;
+      await sleep(5000);
+    }
+  }
 }
