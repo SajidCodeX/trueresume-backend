@@ -26,18 +26,25 @@ const upload = multer({
   }
 });
 
-router.post('/', upload.single('resume'), async (req, res) => {
+router.post('/', upload.any(), async (req: any, res) => {
   try {
-    if (!req.file) {
+
+    const file = req.files?.find((f: any) =>
+      f.fieldname === 'resume' ||
+      f.fieldname === 'file' ||
+      f.fieldname === 'document'
+    );
+
+    if (!file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
     const { jobDescription, userId } = req.body;
 
     const resumeText = await extractTextFromFile(
-      req.file.buffer,
-      req.file.mimetype,
-      req.file.originalname
+      file.buffer,
+      file.mimetype,
+      file.originalname
     );
 
     if (!resumeText || resumeText.trim().length < 50) {
@@ -55,7 +62,7 @@ router.post('/', upload.single('resume'), async (req, res) => {
         .from('analyses')
         .insert({
           user_id: userId,
-          resume_filename: req.file.originalname,
+          resume_filename: file.originalname,
           resume_text: resumeText,
           job_description: jobDescription || null,
           overall_score: analysis.overall_score,
@@ -79,7 +86,7 @@ router.post('/', upload.single('resume'), async (req, res) => {
     return res.json({
       success: true,
       analysisId: savedId,
-      filename: req.file.originalname,
+      filename: file.originalname,
       ...analysis
     });
 
