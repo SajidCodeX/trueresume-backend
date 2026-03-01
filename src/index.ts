@@ -10,10 +10,11 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
 app.use(cors({
-  origin: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  origin: '*', // Testing ke liye '*' rakhein, baad mein Vercel URL daal dena
+  methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: true,
+  optionsSuccessStatus: 200 // Mobile browsers (Safari/Chrome) ke liye zaroori hai
 }));
 
 app.options('*', cors());
