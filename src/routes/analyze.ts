@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { extractTextFromFile } from '../utils/extractText';
 import { analyzeResumeWithAI } from '../utils/analyzeResume';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 const router = express.Router();
 
