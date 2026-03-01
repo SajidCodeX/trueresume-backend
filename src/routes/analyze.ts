@@ -2,16 +2,22 @@ import express from 'express';
 import multer from 'multer';
 import { extractTextFromFile } from '../utils/extractText';
 import { analyzeResumeWithAI } from '../utils/analyzeResume';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 
 const router = express.Router();
 
 const storage = multer.memoryStorage();
+
 const upload = multer({ 
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
-    const allowed = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+    const allowed = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
+    ];
+
     if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -19,11 +25,6 @@ const upload = multer({
     }
   }
 });
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SECRET_KEY!
-);
 
 router.post('/', upload.single('resume'), async (req, res) => {
   try {
@@ -33,7 +34,7 @@ router.post('/', upload.single('resume'), async (req, res) => {
 
     const { jobDescription, userId } = req.body;
 
-    // Extract text from file
+    // Extract text
     const resumeText = await extractTextFromFile(
       req.file.buffer,
       req.file.mimetype,
@@ -41,14 +42,17 @@ router.post('/', upload.single('resume'), async (req, res) => {
     );
 
     if (!resumeText || resumeText.trim().length < 50) {
-      return res.status(400).json({ error: 'Could not extract text from file. Please try a different format.' });
+      return res.status(400).json({ 
+        error: 'Could not extract text from file. Please try a different format.' 
+      });
     }
 
-    // Analyze with AI
+    // AI Analysis
     const analysis = await analyzeResumeWithAI(resumeText, jobDescription);
 
-    // Save to Supabase if user is logged in
+    // Save to Supabase if logged in
     let savedId = null;
+
     if (userId) {
       const { data, error } = await supabase
         .from('analyses')
