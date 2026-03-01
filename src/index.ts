@@ -10,11 +10,16 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: [
+    'http://localhost:3000',
+    'https://trueresume-frontend.vercel.app'
+  ],
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 
+app.options('*', cors());
 app.use(express.json({ limit: '10mb' }));
 
 app.get('/health', (req, res) => {
