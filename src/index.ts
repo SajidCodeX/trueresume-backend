@@ -7,7 +7,7 @@ import analyzeRouter from './routes/analyze';
 import historyRouter from './routes/history';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(cors({
   origin: true,
@@ -26,7 +26,7 @@ app.get('/health', (req, res) => {
 app.use('/api/analyze', analyzeRouter);
 app.use('/api/history', historyRouter);
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`TrueResume API running on port ${PORT}`);
 });
 
