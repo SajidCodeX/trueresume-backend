@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { extractTextFromFile } from '../utils/extractText';
 import { analyzeResumeWithAI } from '../utils/analyzeResume';
-import { supabase } from '../../lib/supabase';
+import { getSupabase } from '../../lib/supabase';
 
 const router = express.Router();
 
@@ -51,9 +51,12 @@ router.post('/', upload.single('resume'), async (req, res) => {
     const analysis = await analyzeResumeWithAI(resumeText, jobDescription);
 
     // Save to Supabase if logged in
+    // Save to Supabase if logged in
     let savedId = null;
-
+      
     if (userId) {
+      const supabase = getSupabase();
+    
       const { data, error } = await supabase
         .from('analyses')
         .insert({
@@ -73,12 +76,11 @@ router.post('/', upload.single('resume'), async (req, res) => {
         })
         .select('id')
         .single();
-
+      
       if (!error && data) {
         savedId = data.id;
       }
     }
-
     return res.json({
       success: true,
       analysisId: savedId,

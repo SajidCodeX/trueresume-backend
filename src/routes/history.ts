@@ -1,5 +1,5 @@
 import express from 'express';
-import { supabase } from '../../lib/supabase';
+import { getSupabase } from '../../lib/supabase';
 
 const router = express.Router();
 
@@ -7,6 +7,7 @@ const router = express.Router();
 router.get('/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
+    const supabase = getSupabase();
 
     const { data, error } = await supabase
       .from('analyses')
@@ -28,6 +29,7 @@ router.get('/:userId', async (req, res) => {
 router.get('/single/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const supabase = getSupabase();
 
     const { data, error } = await supabase
       .from('analyses')
@@ -50,6 +52,7 @@ router.get('/single/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const supabase = getSupabase();
 
     const { error } = await supabase
       .from('analyses')
