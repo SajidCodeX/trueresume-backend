@@ -11,11 +11,11 @@ const PORT = Number(process.env.PORT) || 3000;
 
 // FIX: CORS configuration ko exact mobile requirements ke hisaab se set kiya hai
 const corsOptions = {
-  origin: 'https://trueresume-frontend.vercel.app',
+  origin: true, // Sab origins allow karo temporarily
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   credentials: true,
-  optionsSuccessStatus: 200 // Mobile browsers ke liye 200 return karna mandatory hai
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
