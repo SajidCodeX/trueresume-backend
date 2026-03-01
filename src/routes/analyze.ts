@@ -10,37 +10,39 @@ const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  // FIX 1: Increased limit to 10MB. Mobile uploads (images/scans) are often larger.
+  limits: { fileSize: 10 * 1024 * 1024 }, 
   fileFilter: (req, file, cb) => {
     const allowed = [
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain'
+      'text/plain',
+      'image/jpeg', // Added support for mobile photo-resumes
+      'image/png'
     ];
 
     if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only PDF, DOCX, TXT allowed.'));
+      cb(new Error('Invalid file type. Only PDF, DOCX, TXT, and Images allowed.'));
     }
   }
 });
 
-router.post('/', upload.any(), async (req: any, res) => {
+// Using .single('resume') is more stable than .any() for mobile fetch
+router.post('/', upload.single('resume'), async (req: any, res) => {
   try {
-
-    const file = req.files?.find((f: any) =>
-      f.fieldname === 'resume' ||
-      f.fieldname === 'file' ||
-      f.fieldname === 'document'
-    );
+    // FIX 2: Better file detection. Mobile browsers sometimes wrap files differently.
+    const file = req.file || (req.files && req.files[0]);
 
     if (!file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+      return res.status(400).json({ error: 'No file uploaded. Ensure field name is "resume".' });
     }
 
     const { jobDescription, userId } = req.body;
 
+    // FIX 3: Timeout Protection. AI analysis can take time; 
+    // Render might cut the connection if we don't respond soon.
     const resumeText = await extractTextFromFile(
       file.buffer,
       file.mimetype,
@@ -48,16 +50,14 @@ router.post('/', upload.any(), async (req: any, res) => {
     );
 
     if (!resumeText || resumeText.trim().length < 50) {
-      return res.status(400).json({ error: 'Could not extract text from file.' });
+      return res.status(400).json({ error: 'Could not extract enough text from the file.' });
     }
 
     const analysis = await analyzeResumeWithAI(resumeText, jobDescription);
 
     let savedId = null;
-
     if (userId) {
       const supabase = getSupabase();
-
       const { data, error } = await supabase
         .from('analyses')
         .insert({
@@ -92,6 +92,10 @@ router.post('/', upload.any(), async (req: any, res) => {
 
   } catch (error: any) {
     console.error('Analysis error:', error);
+    // Specifically handle Multer Limit errors
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File is too large. Max limit is 10MB.' });
+    }
     return res.status(500).json({ error: error.message });
   }
 });
