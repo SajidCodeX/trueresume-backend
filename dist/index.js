@@ -26,4 +26,3 @@ app.listen(PORT, () => {
     console.log(`TrueResume API running on port ${PORT}`);
 });
 exports.default = app;
-//# sourceMappingURL=index.js.map

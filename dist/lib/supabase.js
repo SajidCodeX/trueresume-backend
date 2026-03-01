@@ -15,4 +15,3 @@ function getSupabase() {
     return supabase;
 }
 exports.getSupabase = getSupabase;
-//# sourceMappingURL=supabase.js.map

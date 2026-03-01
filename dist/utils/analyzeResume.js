@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.analyzeResumeWithAI = void 0;
 const generative_ai_1 = require("@google/generative-ai");
@@ -12,12 +21,16 @@ function getGemini() {
     }
     return genAI;
 }
-async function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+function sleep(ms) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    });
 }
-async function analyzeResumeWithAI(resumeText, jobDescription, retries = 3) {
-    const model = getGemini().getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-    const prompt = `You are a senior ATS (Applicant Tracking System) expert and professional resume consultant with 15+ years of experience at Fortune 500 companies. You have deep knowledge of how ATS systems like Workday, Taleo, Greenhouse, Lever, and iCIMS parse and score resumes.
+function analyzeResumeWithAI(resumeText_1, jobDescription_1) {
+    return __awaiter(this, arguments, void 0, function* (resumeText, jobDescription, retries = 3) {
+        var _a, _b;
+        const model = getGemini().getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+        const prompt = `You are a senior ATS (Applicant Tracking System) expert and professional resume consultant with 15+ years of experience at Fortune 500 companies. You have deep knowledge of how ATS systems like Workday, Taleo, Greenhouse, Lever, and iCIMS parse and score resumes.
 
 Your task is to perform a comprehensive, STRICT and ACCURATE ATS analysis of the provided resume. Be critical and precise — do NOT give inflated scores. A perfect resume rarely scores above 90.
 
@@ -74,28 +87,28 @@ Return ONLY valid JSON, no markdown, no backticks:
   "pass_rate": "Low|Medium|High|Very High",
   "ats_verdict": "<2-3 sentence honest assessment of ATS performance>"
 }`;
-    for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            const result = await model.generateContent(prompt);
-            const responseText = result.response.text();
-            const cleaned = responseText
-                .replace(/```json/g, '')
-                .replace(/```/g, '')
-                .trim();
-            return JSON.parse(cleaned);
-        }
-        catch (error) {
-            const isRateLimit = error.message?.includes('429') || error.message?.includes('quota');
-            if (isRateLimit && attempt < retries) {
-                console.log(`Rate limit hit, waiting 30s before retry ${attempt}/${retries}...`);
-                await sleep(30000);
-                continue;
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            try {
+                const result = yield model.generateContent(prompt);
+                const responseText = result.response.text();
+                const cleaned = responseText
+                    .replace(/```json/g, '')
+                    .replace(/```/g, '')
+                    .trim();
+                return JSON.parse(cleaned);
             }
-            if (attempt === retries)
-                throw error;
-            await sleep(5000);
+            catch (error) {
+                const isRateLimit = ((_a = error.message) === null || _a === void 0 ? void 0 : _a.includes('429')) || ((_b = error.message) === null || _b === void 0 ? void 0 : _b.includes('quota'));
+                if (isRateLimit && attempt < retries) {
+                    console.log(`Rate limit hit, waiting 30s before retry ${attempt}/${retries}...`);
+                    yield sleep(30000);
+                    continue;
+                }
+                if (attempt === retries)
+                    throw error;
+                yield sleep(5000);
+            }
         }
-    }
+    });
 }
 exports.analyzeResumeWithAI = analyzeResumeWithAI;
-//# sourceMappingURL=analyzeResume.js.map

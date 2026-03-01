@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -7,7 +16,7 @@ const express_1 = __importDefault(require("express"));
 const multer_1 = __importDefault(require("multer"));
 const extractText_1 = require("../utils/extractText");
 const analyzeResume_1 = require("../utils/analyzeResume");
-const supabase_1 = require("../../lib/supabase");
+const supabase_1 = require("../lib/supabase");
 const router = express_1.default.Router();
 const storage = multer_1.default.memoryStorage();
 const upload = (0, multer_1.default)({
@@ -27,21 +36,21 @@ const upload = (0, multer_1.default)({
         }
     }
 });
-router.post('/', upload.single('resume'), async (req, res) => {
+router.post('/', upload.single('resume'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
         const { jobDescription, userId } = req.body;
-        const resumeText = await (0, extractText_1.extractTextFromFile)(req.file.buffer, req.file.mimetype, req.file.originalname);
+        const resumeText = yield (0, extractText_1.extractTextFromFile)(req.file.buffer, req.file.mimetype, req.file.originalname);
         if (!resumeText || resumeText.trim().length < 50) {
             return res.status(400).json({ error: 'Could not extract text from file.' });
         }
-        const analysis = await (0, analyzeResume_1.analyzeResumeWithAI)(resumeText, jobDescription);
+        const analysis = yield (0, analyzeResume_1.analyzeResumeWithAI)(resumeText, jobDescription);
         let savedId = null;
         if (userId) {
             const supabase = (0, supabase_1.getSupabase)();
-            const { data, error } = await supabase
+            const { data, error } = yield supabase
                 .from('analyses')
                 .insert({
                 user_id: userId,
@@ -64,17 +73,11 @@ router.post('/', upload.single('resume'), async (req, res) => {
                 savedId = data.id;
             }
         }
-        return res.json({
-            success: true,
-            analysisId: savedId,
-            filename: req.file.originalname,
-            ...analysis
-        });
+        return res.json(Object.assign({ success: true, analysisId: savedId, filename: req.file.originalname }, analysis));
     }
     catch (error) {
         console.error('Analysis error:', error);
         return res.status(500).json({ error: error.message });
     }
-});
+}));
 exports.default = router;
-//# sourceMappingURL=analyze.js.map
