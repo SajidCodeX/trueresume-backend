@@ -10,7 +10,7 @@ const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = [
       'application/pdf',
@@ -34,7 +34,6 @@ router.post('/', upload.single('resume'), async (req, res) => {
 
     const { jobDescription, userId } = req.body;
 
-    // Extract text
     const resumeText = await extractTextFromFile(
       req.file.buffer,
       req.file.mimetype,
@@ -42,21 +41,16 @@ router.post('/', upload.single('resume'), async (req, res) => {
     );
 
     if (!resumeText || resumeText.trim().length < 50) {
-      return res.status(400).json({ 
-        error: 'Could not extract text from file. Please try a different format.' 
-      });
+      return res.status(400).json({ error: 'Could not extract text from file.' });
     }
 
-    // AI Analysis
     const analysis = await analyzeResumeWithAI(resumeText, jobDescription);
 
-    // Save to Supabase if logged in
-    // Save to Supabase if logged in
     let savedId = null;
-      
+
     if (userId) {
       const supabase = getSupabase();
-    
+
       const { data, error } = await supabase
         .from('analyses')
         .insert({
@@ -76,11 +70,12 @@ router.post('/', upload.single('resume'), async (req, res) => {
         })
         .select('id')
         .single();
-      
+
       if (!error && data) {
         savedId = data.id;
       }
     }
+
     return res.json({
       success: true,
       analysisId: savedId,
@@ -90,9 +85,7 @@ router.post('/', upload.single('resume'), async (req, res) => {
 
   } catch (error: any) {
     console.error('Analysis error:', error);
-    return res.status(500).json({ 
-      error: error.message || 'Analysis failed. Please try again.' 
-    });
+    return res.status(500).json({ error: error.message });
   }
 });
 

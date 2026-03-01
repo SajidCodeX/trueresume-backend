@@ -1,28 +1,23 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-let genAI: GoogleGenerativeAI | null = null;
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.analyzeResumeWithAI = void 0;
+const generative_ai_1 = require("@google/generative-ai");
+let genAI = null;
 function getGemini() {
-  if (!genAI) {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) throw new Error("Missing Gemini API key");
-    genAI = new GoogleGenerativeAI(key);
-  }
-  return genAI;
+    if (!genAI) {
+        const key = process.env.GEMINI_API_KEY;
+        if (!key)
+            throw new Error("Missing Gemini API key");
+        genAI = new generative_ai_1.GoogleGenerativeAI(key);
+    }
+    return genAI;
 }
-
-async function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+async function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-export async function analyzeResumeWithAI(
-  resumeText: string,
-  jobDescription?: string,
-  retries = 3
-): Promise<any> {
-  const model = getGemini().getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-
-  const prompt = `You are a senior ATS (Applicant Tracking System) expert and professional resume consultant with 15+ years of experience at Fortune 500 companies. You have deep knowledge of how ATS systems like Workday, Taleo, Greenhouse, Lever, and iCIMS parse and score resumes.
+async function analyzeResumeWithAI(resumeText, jobDescription, retries = 3) {
+    const model = getGemini().getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    const prompt = `You are a senior ATS (Applicant Tracking System) expert and professional resume consultant with 15+ years of experience at Fortune 500 companies. You have deep knowledge of how ATS systems like Workday, Taleo, Greenhouse, Lever, and iCIMS parse and score resumes.
 
 Your task is to perform a comprehensive, STRICT and ACCURATE ATS analysis of the provided resume. Be critical and precise — do NOT give inflated scores. A perfect resume rarely scores above 90.
 
@@ -79,25 +74,28 @@ Return ONLY valid JSON, no markdown, no backticks:
   "pass_rate": "Low|Medium|High|Very High",
   "ats_verdict": "<2-3 sentence honest assessment of ATS performance>"
 }`;
-
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const result = await model.generateContent(prompt);
-      const responseText = result.response.text();
-      const cleaned = responseText
-        .replace(/```json/g, '')
-        .replace(/```/g, '')
-        .trim();
-      return JSON.parse(cleaned);
-    } catch (error: any) {
-      const isRateLimit = error.message?.includes('429') || error.message?.includes('quota');
-      if (isRateLimit && attempt < retries) {
-        console.log(`Rate limit hit, waiting 30s before retry ${attempt}/${retries}...`);
-        await sleep(30000);
-        continue;
-      }
-      if (attempt === retries) throw error;
-      await sleep(5000);
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const result = await model.generateContent(prompt);
+            const responseText = result.response.text();
+            const cleaned = responseText
+                .replace(/```json/g, '')
+                .replace(/```/g, '')
+                .trim();
+            return JSON.parse(cleaned);
+        }
+        catch (error) {
+            const isRateLimit = error.message?.includes('429') || error.message?.includes('quota');
+            if (isRateLimit && attempt < retries) {
+                console.log(`Rate limit hit, waiting 30s before retry ${attempt}/${retries}...`);
+                await sleep(30000);
+                continue;
+            }
+            if (attempt === retries)
+                throw error;
+            await sleep(5000);
+        }
     }
-  }
 }
+exports.analyzeResumeWithAI = analyzeResumeWithAI;
+//# sourceMappingURL=analyzeResume.js.map

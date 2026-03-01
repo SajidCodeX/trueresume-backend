@@ -3,11 +3,10 @@ import { getSupabase } from '../../lib/supabase';
 
 const router = express.Router();
 
-// Get all analyses for a user
 router.get('/:userId', async (req, res) => {
   try {
-    const { userId } = req.params;
     const supabase = getSupabase();
+    const { userId } = req.params;
 
     const { data, error } = await supabase
       .from('analyses')
@@ -20,16 +19,14 @@ router.get('/:userId', async (req, res) => {
     return res.json({ success: true, analyses: data });
 
   } catch (error: any) {
-    console.error('History error:', error);
     return res.status(500).json({ error: error.message });
   }
 });
 
-// Get single analysis by ID
 router.get('/single/:id', async (req, res) => {
   try {
-    const { id } = req.params;
     const supabase = getSupabase();
+    const { id } = req.params;
 
     const { data, error } = await supabase
       .from('analyses')
@@ -38,21 +35,19 @@ router.get('/single/:id', async (req, res) => {
       .single();
 
     if (error) throw error;
-    if (!data) return res.status(404).json({ error: 'Analysis not found' });
+    if (!data) return res.status(404).json({ error: 'Not found' });
 
     return res.json({ success: true, analysis: data });
 
   } catch (error: any) {
-    console.error('Single analysis error:', error);
     return res.status(500).json({ error: error.message });
   }
 });
 
-// Delete analysis
 router.delete('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
     const supabase = getSupabase();
+    const { id } = req.params;
 
     const { error } = await supabase
       .from('analyses')
@@ -61,10 +56,9 @@ router.delete('/:id', async (req, res) => {
 
     if (error) throw error;
 
-    return res.json({ success: true, message: 'Analysis deleted' });
+    return res.json({ success: true });
 
   } catch (error: any) {
-    console.error('Delete error:', error);
     return res.status(500).json({ error: error.message });
   }
 });
