@@ -10,11 +10,11 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
 app.use(cors({
-  origin: '*', // Testing ke liye '*' rakhein, baad mein Vercel URL daal dena
+  origin: 'https://trueresume-frontend.vercel.app', // Specific origin dena best hai
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-  optionsSuccessStatus: 200 // Mobile browsers (Safari/Chrome) ke liye zaroori hai
+  optionsSuccessStatus: 200 // Mobile browsers ke liye 204 ki jagah 200 zaroori hai
 }));
 
 app.options('*', cors());
