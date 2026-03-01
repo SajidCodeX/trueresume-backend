@@ -10,11 +10,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://trueresume-frontend.vercel.app'
-  ],
-  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
@@ -29,7 +26,7 @@ app.get('/health', (req, res) => {
 app.use('/api/analyze', analyzeRouter);
 app.use('/api/history', historyRouter);
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`TrueResume API running on port ${PORT}`);
 });
 
