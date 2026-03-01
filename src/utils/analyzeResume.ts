@@ -1,6 +1,20 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+let genAI: GoogleGenerativeAI | null = null;
+
+function getGemini() {
+  if (!genAI) {
+    const key = process.env.GEMINI_API_KEY;
+
+    if (!key) {
+      throw new Error("GEMINI_API_KEY missing at runtime");
+    }
+
+    genAI = new GoogleGenerativeAI(key);
+  }
+
+  return genAI;
+}
 
 async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -11,7 +25,7 @@ export async function analyzeResumeWithAI(
   jobDescription?: string,
   retries = 3
 ): Promise<any> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+  const model = getGemini().getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
   const prompt = `You are a senior ATS (Applicant Tracking System) expert and professional resume consultant with 15+ years of experience at Fortune 500 companies. You have deep knowledge of how ATS systems like Workday, Taleo, Greenhouse, Lever, and iCIMS parse and score resumes.
 
